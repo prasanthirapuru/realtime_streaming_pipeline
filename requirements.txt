@@ -3,3 +3,4 @@ numpy
 kafka-python
 fastapi
 uvicorn
+gunicorn

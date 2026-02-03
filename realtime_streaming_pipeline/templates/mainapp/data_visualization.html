@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Visualization - Real-time Streaming Pipeline{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="bi bi-bar-chart text-info"></i> Data Visualization</h1>
+            <p class="lead">Real-time analytics and visualization of your streaming data</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Real-time Data Flow</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm active" onclick="changeTimeRange('hour')">1H</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeTimeRange('day')">1D</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeTimeRange('week')">1W</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="realTimeChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Data Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-2 border rounded">
+                                <h3 id="totalRecords">0</h3>
+                                <small class="text-muted">Total Records</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-2 border rounded">
+                                <h3 id="avgSize">0</h3>
+                                <small class="text-muted">Avg Size (KB)</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded">
+                                <h3 id="dataRate">0</h3>
+                                <small class="text-muted">Records/Sec</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded">
+                                <h3 id="successRate">0%</h3>
+                                <small class="text-muted">Success Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Data Type Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="typeChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Processing Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Data Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div class="display-6 text-primary mb-2">
+                                    <i class="bi bi-arrow-up-right-circle"></i>
+                                </div>
+                                <h5>Peak Hours</h5>
+                                <p class="text-muted">10:00 - 14:00</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div class="display-6 text-success mb-2">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <h5>Processing Time</h5>
+                                <p class="text-muted">Avg: 120ms</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div class="display-6 text-warning mb-2">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                                <h5>Error Rate</h5>
+                                <p class="text-muted">0.05%</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div class="display-6 text-info mb-2">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </div>
+                                <h5>Throughput</h5>
+                                <p class="text-muted">250 rec/s</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Data Samples</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="generateSampleData()">
+                        <i class="bi bi-plus-circle"></i> Generate Sample Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Data Type</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                    <th>User</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sampleData">
+                                <!-- Sample data will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Initialize all charts
+let realTimeChart, typeChart, statusChart;
+let currentTimeRange = 'hour';
+
+// Real-time Chart Data
+const realTimeData = {
+    labels: [],
+    datasets: [{
+        label: 'Data Flow (records/sec)',
+        data: [],
+        borderColor: 'rgb(54, 162, 235)',
+        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+        fill: true,
+        tension: 0.4
+    }]
+};
+
+const realTimeConfig = {
+    type: 'line',
+    data: realTimeData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Records per second'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Time'
+                }
+            }
+        }
+    }
+};
+
+// Data Type Distribution Chart
+const typeChartConfig = {
+    type: 'doughnut',
+    data: {
+        labels: ['Sensor', 'Log', 'Metric', 'Event', 'Custom'],
+        datasets: [{
+            data: [35, 25, 20, 15, 5],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right',
+            }
+        }
+    }
+};
+
+// Processing Status Chart
+const statusChartConfig = {
+    type: 'bar',
+    data: {
+        labels: ['Processed', 'Pending', 'Failed', 'Retrying'],
+        datasets: [{
+            label: 'Records',
+            data: [150, 25, 3, 2],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(153, 102, 255, 0.8)'
+            ],
+            borderColor: [
+                'rgb(75, 192, 192)',
+                'rgb(255, 206, 86)',
+                'rgb(255, 99, 132)',
+                'rgb(153, 102, 255)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+};
+
+// Initialize charts
+window.onload = function() {
+    // Real-time chart
+    const realTimeCtx = document.getElementById('realTimeChart').getContext('2d');
+    realTimeChart = new Chart(realTimeCtx, realTimeConfig);
+    
+    // Type chart
+    const typeCtx = document.getElementById('typeChart').getContext('2d');
+    typeChart = new Chart(typeCtx, typeChartConfig);
+    
+    // Status chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    statusChart = new Chart(statusCtx, statusChartConfig);
+    
+    // Start real-time updates
+    startRealTimeUpdates();
+    updateSampleData();
+};
+
+function startRealTimeUpdates() {
+    // Initial data for the last 60 minutes
+    const now = new Date();
+    const labels = [];
+    const data = [];
+    
+    for (let i = 60; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60000);
+        labels.push(time.getHours() + ':' + time.getMinutes().toString().padStart(2, '0'));
+        data.push(Math.floor(Math.random() * 100) + 20);
+    }
+    
+    realTimeChart.data.labels = labels;
+    realTimeChart.data.datasets[0].data = data;
+    realTimeChart.update();
+    
+    // Update every 5 seconds
+    setInterval(updateRealTimeChart, 5000);
+    setInterval(updateStatistics, 3000);
+}
+
+function updateRealTimeChart() {
+    const labels = realTimeChart.data.labels;
+    const data = realTimeChart.data.datasets[0].data;
+    
+    // Remove first data point
+    labels.shift();
+    data.shift();
+    
+    // Add new data point
+    const now = new Date();
+    labels.push(now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0'));
+    data.push(Math.floor(Math.random() * 100) + 20);
+    
+    realTimeChart.update();
+}
+
+function updateStatistics() {
+    // Update statistics with random data
+    document.getElementById('totalRecords').textContent = 
+        Math.floor(Math.random() * 1000) + 500;
+    document.getElementById('avgSize').textContent = 
+        (Math.random() * 5 + 1).toFixed(2);
+    document.getElementById('dataRate').textContent = 
+        Math.floor(Math.random() * 50) + 10;
+    document.getElementById('successRate').textContent = 
+        (95 + Math.random() * 5).toFixed(1) + '%';
+}
+
+function changeTimeRange(range) {
+    currentTimeRange = range;
+    
+    // Update button states
+    document.querySelectorAll('.btn-group button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update chart based on time range
+    updateChartForTimeRange(range);
+}
+
+function updateChartForTimeRange(range) {
+    const now = new Date();
+    const labels = [];
+    const data = [];
+    let interval;
+    
+    switch(range) {
+        case 'hour':
+            interval = 60000; // 1 minute intervals
+            for (let i = 60; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * interval);
+                labels.push(time.getHours() + ':' + time.getMinutes().toString().padStart(2, '0'));
+                data.push(Math.floor(Math.random() * 100) + 20);
+            }
+            break;
+        case 'day':
+            interval = 3600000; // 1 hour intervals
+            for (let i = 24; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * interval);
+                labels.push(time.getHours() + ':00');
+                data.push(Math.floor(Math.random() * 1000) + 200);
+            }
+            break;
+        case 'week':
+            interval = 86400000; // 1 day intervals
+            for (let i = 7; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * interval);
+                labels.push(time.toLocaleDateString('en-US', { weekday: 'short' }));
+                data.push(Math.floor(Math.random() * 5000) + 1000);
+            }
+            break;
+    }
+    
+    realTimeChart.data.labels = labels;
+    realTimeChart.data.datasets[0].data = data;
+    realTimeChart.update();
+}
+
+function updateSampleData() {
+    const sampleData = [
+        {
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'Sensor',
+            value: '25.5°C',
+            status: 'Processed',
+            user: 'sensor_01'
+        },
+        {
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'Log',
+            value: 'INFO: System OK',
+            status: 'Processed',
+            user: 'system'
+        },
+        {
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'Metric',
+            value: '85% CPU',
+            status: 'Pending',
+            user: 'monitor'
+        },
+        {
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'Event',
+            value: 'User login',
+            status: 'Processed',
+            user: 'admin'
+        },
+        {
+            timestamp: new Date().toLocaleTimeString(),
+            type: 'Custom',
+            value: 'Test data',
+            status: 'Failed',
+            user: 'tester'
+        }
+    ];
+    
+    const tbody = document.getElementById('sampleData');
+    tbody.innerHTML = '';
+    
+    sampleData.forEach(item => {
+        const row = document.createElement('tr');
+        
+        // Status badge color
+        let statusClass = 'badge ';
+        switch(item.status) {
+            case 'Processed': statusClass += 'bg-success'; break;
+            case 'Pending': statusClass += 'bg-warning'; break;
+            case 'Failed': statusClass += 'bg-danger'; break;
+            default: statusClass += 'bg-secondary';
+        }
+        
+        row.innerHTML = `
+            <td>${item.timestamp}</td>
+            <td><span class="badge bg-info">${item.type}</span></td>
+            <td>${item.value}</td>
+            <td><span class="${statusClass}">${item.status}</span></td>
+            <td>${item.user}</td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+function generateSampleData() {
+    const types = ['Sensor', 'Log', 'Metric', 'Event', 'Custom'];
+    const statuses = ['Processed', 'Pending', 'Failed'];
+    const users = ['sensor_01', 'system', 'monitor', 'admin', 'tester'];
+    
+    const newData = {
+        timestamp: new Date().toLocaleTimeString(),
+        type: types[Math.floor(Math.random() * types.length)],
+        value: `${(Math.random() * 100).toFixed(2)}${Math.random() > 0.5 ? '°C' : '%'}`,
+        status: statuses[Math.floor(Math.random() * statuses.length)],
+        user: users[Math.floor(Math.random() * users.length)]
+    };
+    
+    const tbody = document.getElementById('sampleData');
+    const newRow = document.createElement('tr');
+    
+    // Status badge color
+    let statusClass = 'badge ';
+    switch(newData.status) {
+        case 'Processed': statusClass += 'bg-success'; break;
+        case 'Pending': statusClass += 'bg-warning'; break;
+        case 'Failed': statusClass += 'bg-danger'; break;
+        default: statusClass += 'bg-secondary';
+    }
+    
+    newRow.innerHTML = `
+        <td>${newData.timestamp}</td>
+        <td><span class="badge bg-info">${newData.type}</span></td>
+        <td>${newData.value}</td>
+        <td><span class="${statusClass}">${newData.status}</span></td>
+        <td>${newData.user}</td>
+    `;
+    
+    tbody.insertBefore(newRow, tbody.firstChild);
+    
+    // Limit to 10 rows
+    if (tbody.children.length > 10) {
+        tbody.removeChild(tbody.lastChild);
+    }
+    
+    // Update statistics
+    updateStatistics();
+}
+</script>
+{% endblock %}

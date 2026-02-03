@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Email - Real-time Streaming Pipeline{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-envelope-check"></i> Test Email Configuration</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Test your AWS SES email configuration by sending test emails.
+                        Make sure your SES sender email is verified in AWS Console.
+                    </p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="recipient_email" class="form-label">Recipient Email Address</label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="recipient_email" 
+                                   name="recipient_email" 
+                                   value="{{ user.email }}"
+                                   required>
+                            <div class="form-text">
+                                Enter the email address where you want to receive test emails
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Email Type</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" 
+                                       type="radio" 
+                                       name="email_type" 
+                                       id="welcome_email" 
+                                       value="welcome" 
+                                       checked>
+                                <label class="form-check-label" for="welcome_email">
+                                    <strong>Welcome Email</strong> - Test new user registration email
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" 
+                                       type="radio" 
+                                       name="email_type" 
+                                       id="stream_email" 
+                                       value="stream">
+                                <label class="form-check-label" for="stream_email">
+                                    <strong>Stream Notification</strong> - Test data streaming notification
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="radio" 
+                                       name="email_type" 
+                                       id="lambda_email" 
+                                       value="lambda">
+                                <label class="form-check-label" for="lambda_email">
+                                    <strong>Lambda Notification</strong> - Test Lambda invocation notification
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">AWS SES Configuration</label>
+                            <div class="alert alert-info">
+                                <p class="mb-1"><strong>Sender:</strong> noreply@realtimestream.com</p>
+                                <p class="mb-1"><strong>Region:</strong> ap-south-1</p>
+                                <p class="mb-1"><strong>Status:</strong> 
+                                    <span class="badge bg-success">Configured</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Send Test Email
+                            </button>
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card-footer">
+                    <h6>Important Notes:</h6>
+                    <ul class="small text-muted">
+                        <li>Make sure your AWS SES sender email is verified in AWS Console</li>
+                        <li>Check your spam folder if you don't receive the email</li>
+                        <li>Ensure your IAM user has SES sending permissions</li>
+                        <li>Test emails are sent from: noreply@realtimestream.com</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-gear"></i> AWS SES Setup Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Login to AWS Management Console</li>
+                        <li>Navigate to Amazon SES service</li>
+                        <li>Verify your sender email address in "Verified Identities"</li>
+                        <li>Move out of sandbox mode (if required) by requesting production access</li>
+                        <li>Configure IAM permissions for SES sending</li>
+                        <li>Test your configuration using this page</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Sandbox Mode:</strong> New SES accounts start in sandbox mode, 
+                        which only allows sending to verified email addresses.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

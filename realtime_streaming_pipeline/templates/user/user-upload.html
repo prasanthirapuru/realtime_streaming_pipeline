@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Data - Real-time Streaming Pipeline{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-cloud-upload"></i> Upload Data File</h4>
+                    <p class="mb-0 text-muted">Upload files for real-time streaming to AWS Kinesis</p>
+                </div>
+                <div class="card-body">
+                    {% if development_mode %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Development Mode:</strong> Files are saved locally. 
+                        In production, files would be uploaded to AWS S3.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_file_path" class="form-label">
+                                <i class="bi bi-file-earmark"></i> Select File
+                            </label>
+                            {{ form.file_path }}
+                            <div class="form-text">
+                                Max file size: 10MB. Supported: CSV, JSON, TXT, LOG, Excel, PDF, Images
+                            </div>
+                            {% if form.file_path.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.file_path.errors %}
+                                <i class="bi bi-exclamation-circle"></i> {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_data_type" class="form-label">
+                                <i class="bi bi-tag"></i> Data Type
+                            </label>
+                            {{ form.data_type }}
+                            <div class="form-text">
+                                Select the type of data in this file
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">
+                                <i class="bi bi-card-text"></i> Description (Optional)
+                            </label>
+                            {{ form.description }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="submit" class="btn btn-primary" id="uploadButton">
+                                <i class="bi bi-upload"></i> Upload to {% if development_mode %}Local Storage{% else %}AWS S3{% endif %}
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Upload Progress (hidden by default) -->
+                    <div class="mt-4" id="uploadProgress" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: 0%"
+                                 id="progressBar">
+                                0%
+                            </div>
+                        </div>
+                        <div class="text-center mt-2" id="progressText">
+                            Preparing upload...
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <h6><i class="bi bi-info-circle"></i> Upload Guidelines:</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Files are automatically processed and sent to Kinesis stream</li>
+                        <li>You will receive an email notification upon successful upload</li>
+                        <li>Uploaded files appear in your Stream Data dashboard</li>
+                        <li>Files are retained according to AWS S3 lifecycle policies</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-filetype-csv"></i> File Format Examples</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>CSV Format (Sensor Data):</h6>
+                            <pre class="bg-light p-2 small">timestamp,sensor_id,temperature,humidity
+2024-01-15T10:30:00,sensor_001,25.5,60
+2024-01-15T10:31:00,sensor_001,25.7,59
+2024-01-15T10:32:00,sensor_001,25.6,61</pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>JSON Format (Log Data):</h6>
+                            <pre class="bg-light p-2 small">{
+  "timestamp": "2024-01-15T10:30:00",
+  "level": "INFO",
+  "message": "System started",
+  "component": "auth"
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Upload Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-bar-chart"></i> Upload Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="display-6 text-primary">{{ total_uploads }}</div>
+                        <p class="text-muted mb-0">Total Uploads</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="display-6 text-success">{{ total_size }}</div>
+                        <p class="text-muted mb-0">Total Storage Used</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Uploads -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-clock-history"></i> Recent Uploads</h5>
+                </div>
+                <div class="card-body">
+                    {% if upload_history %}
+                    <div class="list-group list-group-flush">
+                        {% for upload in upload_history %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-file-earmark-text"></i> 
+                                    {{ upload.file_name|truncatechars:20 }}
+                                </h6>
+                                <small class="text-muted">{{ upload.upload_time|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1 small">
+                                <span class="badge bg-{% if upload.data_type == 'sensor' %}primary{% elif upload.data_type == 'log' %}secondary{% elif upload.data_type == 'metric' %}info{% elif upload.data_type == 'event' %}warning{% else %}dark{% endif %}">
+                                    {{ upload.data_type }}
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    {{ upload.get_file_size_display }}
+                                </span>
+                            </p>
+                            <small class="text-muted">
+                                {% if upload.processed %}
+                                <i class="bi bi-check-circle text-success"></i> Processed
+                                {% else %}
+                                <i class="bi bi-clock text-warning"></i> Pending
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-inbox display-6 text-muted"></i>
+                        <p class="text-muted mt-2">No uploads yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if upload_history %}
+                <div class="card-footer text-center">
+                    <a href="#" class="btn btn-sm btn-outline-primary">View All Uploads</a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'user-submit-form' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-send"></i> Submit Form Data
+                        </a>
+                        <a href="{% url 'stream-data' %}" class="btn btn-outline-success">
+                            <i class="bi bi-database"></i> View Stream Data
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-info">
+                            <i class="bi bi-speedometer2"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form submission with progress indicator
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const uploadButton = document.getElementById('uploadButton');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    // Show progress bar
+    progressDiv.style.display = 'block';
+    uploadButton.disabled = true;
+    uploadButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+    
+    // Simulate progress updates
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 10;
+        if (progress <= 90) {
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = progress + '%';
+            progressText.textContent = getProgressMessage(progress);
+        }
+    }, 300);
+    
+    // Clear interval when form submits (actual upload happens)
+    setTimeout(() => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+        progressText.textContent = 'Processing file...';
+    }, 2000);
+});
+
+function getProgressMessage(progress) {
+    if (progress < 30) return 'Preparing file...';
+    if (progress < 60) return 'Uploading to {% if development_mode %}local storage{% else %}AWS S3{% endif %}...';
+    if (progress < 90) return 'Sending to Kinesis stream...';
+    return 'Finalizing...';
+}
+
+// File size validation
+document.getElementById('id_file_path').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    
+    if (file && file.size > maxSize) {
+        alert(`File size (${(file.size / (1024*1024)).toFixed(2)}MB) exceeds maximum limit of 10MB.`);
+        e.target.value = ''; // Clear the file input
+    }
+});
+
+// Auto-select data type based on file extension
+document.getElementById('id_file_path').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const fileName = file.name.toLowerCase();
+    const dataTypeSelect = document.getElementById('id_data_type');
+    
+    if (fileName.endsWith('.csv')) {
+        dataTypeSelect.value = 'csv';
+    } else if (fileName.endsWith('.json')) {
+        dataTypeSelect.value = 'json';
+    } else if (fileName.endsWith('.txt') || fileName.endsWith('.log')) {
+        dataTypeSelect.value = 'text';
+    } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+        dataTypeSelect.value = 'image';
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        dataTypeSelect.value = 'custom'; // Excel files as custom
+    }
+});
+</script>
+
+<style>
+/* Custom styling for file input */
+input[type="file"].form-control {
+    padding: 0.5rem;
+}
+
+input[type="file"].form-control::file-selector-button {
+    padding: 0.5rem 1rem;
+    margin-right: 1rem;
+    border: none;
+    background-color: #6c757d;
+    color: white;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+input[type="file"].form-control::file-selector-button:hover {
+    background-color: #5a6268;
+}
+
+/* Progress bar animation */
+.progress-bar {
+    transition: width 0.3s ease-in-out;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

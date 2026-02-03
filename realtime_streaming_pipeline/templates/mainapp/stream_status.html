@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}Stream Status - Real-time Streaming Pipeline{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="bi bi-graph-up text-success"></i> Stream Status</h1>
+            <p class="lead">Monitor the health and performance of your Kinesis data stream</p>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <h5><i class="bi bi-exclamation-triangle"></i> Error</h5>
+        <p>{{ error }}</p>
+        <p class="mb-0">Please check your AWS credentials and stream configuration.</p>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Kinesis Stream Information</h5>
+                </div>
+                <div class="card-body">
+                    {% if stream_info %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table">
+                                <tr>
+                                    <th>Stream Name</th>
+                                    <td>{{ stream_info.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status</th>
+                                    <td>
+                                        {% if stream_info.status == "ACTIVE" %}
+                                            <span class="badge bg-success">{{ stream_info.status }}</span>
+                                        {% elif stream_info.status == "CREATING" %}
+                                            <span class="badge bg-warning">{{ stream_info.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ stream_info.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Number of Shards</th>
+                                    <td>{{ stream_info.shards }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table">
+                                <tr>
+                                    <th>AWS Region</th>
+                                    <td>ap-south-1</td>
+                                </tr>
+                                <tr>
+                                    <th>ARN</th>
+                                    <td>
+                                        <small class="text-muted">{{ stream_info.arn|slice:":50" }}...</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Retention Period</th>
+                                    <td>24 hours</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-cloud-slash display-1 text-muted"></i>
+                        <h4 class="mt-3">Stream Not Available</h4>
+                        <p class="text-muted">Cannot connect to AWS Kinesis stream</p>
+                        <div class="mt-3">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>Stream Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 id="incomingRecords">0</h2>
+                                <p class="text-muted mb-0">Records In</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 id="outgoingRecords">0</h2>
+                                <p class="text-muted mb-0">Records Out</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 id="throughput">0</h2>
+                                <p class="text-muted mb-0">KB/s</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <h2 id="latency">0</h2>
+                                <p class="text-muted mb-0">ms Latency</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <canvas id="metricsChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Stream Health</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Connection Status</h6>
+                        <div class="d-flex align-items-center">
+                            {% if stream_info %}
+                            <div class="me-2">
+                                <div class="spinner-grow spinner-grow-sm text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <span class="text-success">Connected to AWS Kinesis</span>
+                            {% else %}
+                            <div class="me-2">
+                                <div class="spinner-grow spinner-grow-sm text-danger" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <span class="text-danger">Connection Failed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Data Flow</h6>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: 75%">
+                                75% Active
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Shard Distribution</h6>
+                        <div class="d-flex justify-content-between small">
+                            <span>Shard 1: 25%</span>
+                            <span>Shard 2: 25%</span>
+                            <span>Shard 3: 25%</span>
+                            <span>Shard 4: 25%</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Last Updated</h6>
+                        <p class="mb-0">
+                            <i class="bi bi-clock"></i> 
+                            <span id="lastUpdate">Just now</span>
+                        </p>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="refreshStreamStatus()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Status
+                        </button>
+                        <a href="{% url 'user-submit-form' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-send"></i> Test Stream
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Today's Records
+                            <span class="badge bg-primary rounded-pill">0</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Avg. Size
+                            <span class="badge bg-success rounded-pill">1.2 KB</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Peak Throughput
+                            <span class="badge bg-warning rounded-pill">500 rec/s</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Error Rate
+                            <span class="badge bg-info rounded-pill">0.01%</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Stream Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-shield-check text-primary"></i> Security</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check-circle text-success"></i> IAM Authentication</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Data Encryption</li>
+                                <li><i class="bi bi-check-circle text-success"></i> Access Logging</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-gear text-warning"></i> Settings</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-info-circle"></i> Retention: 24 hours</li>
+                                <li><i class="bi bi-info-circle"></i> Shards: 4</li>
+                                <li><i class="bi bi-info-circle"></i> Enhanced Fan-Out: Disabled</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="bi bi-lightning text-danger"></i> Performance</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-speedometer2"></i> Read: 2 MB/s per shard</li>
+                                <li><i class="bi bi-speedometer2"></i> Write: 1 MB/s per shard</li>
+                                <li><i class="bi bi-clock-history"></i> Latency: &lt; 1 second</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Simulated metrics data
+const metricsData = {
+    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+    datasets: [{
+        label: 'Incoming Records',
+        data: [12, 19, 8, 15, 22, 18],
+        borderColor: 'rgb(54, 162, 235)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        tension: 0.4
+    }, {
+        label: 'Outgoing Records',
+        data: [10, 15, 5, 12, 18, 15],
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.4
+    }]
+};
+
+const metricsConfig = {
+    type: 'line',
+    data: metricsData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Records per second'
+                }
+            }
+        }
+    }
+};
+
+// Initialize chart
+window.onload = function() {
+    const ctx = document.getElementById('metricsChart').getContext('2d');
+    window.metricsChart = new Chart(ctx, metricsConfig);
+    
+    // Update metrics with random data
+    updateMetrics();
+    setInterval(updateMetrics, 5000);
+};
+
+function updateMetrics() {
+    // Generate random metrics
+    const incoming = Math.floor(Math.random() * 100);
+    const outgoing = Math.floor(Math.random() * 80);
+    const throughput = (Math.random() * 10).toFixed(2);
+    const latency = Math.floor(Math.random() * 100);
+    
+    // Update display
+    document.getElementById('incomingRecords').textContent = incoming;
+    document.getElementById('outgoingRecords').textContent = outgoing;
+    document.getElementById('throughput').textContent = throughput;
+    document.getElementById('latency').textContent = latency;
+    
+    // Update chart data
+    if (window.metricsChart) {
+        const labels = window.metricsChart.data.labels;
+        const datasets = window.metricsChart.data.datasets;
+        
+        // Shift labels and data
+        labels.shift();
+        labels.push(new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+        
+        datasets[0].data.shift();
+        datasets[0].data.push(incoming);
+        
+        datasets[1].data.shift();
+        datasets[1].data.push(outgoing);
+        
+        window.metricsChart.update();
+    }
+    
+    // Update last updated time
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+}
+
+function refreshStreamStatus() {
+    location.reload();
+}
+</script>
+{% endblock %}

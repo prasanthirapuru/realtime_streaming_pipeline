@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <h1 class="display-4 fw-bold mb-4">
+                Real-time Data Streaming Pipeline
+                <span class="text-primary">with AWS</span>
+            </h1>
+            <p class="lead mb-4">
+                A complete solution for real-time data processing using AWS Kinesis and Lambda functions.
+                Stream, process, and analyze data in real-time with our Django-based platform.
+            </p>
+            <div class="d-grid gap-2 d-md-flex">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg px-4 me-md-2">
+                        <i class="bi bi-speedometer2"></i> Go to Dashboard
+                    </a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-4 me-md-2">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
+                    </a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="bi bi-person-plus"></i> Register
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4">
+                        <i class="bi bi-lightning-charge text-warning"></i>
+                        AWS Services Integration
+                    </h5>
+                    <div class="row text-center">
+                        <div class="col-6 mb-4">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-arrow-left-right display-6 text-primary"></i>
+                                <h6 class="mt-2">Kinesis</h6>
+                                <p class="small text-muted">Real-time Data Streams</p>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-gear display-6 text-success"></i>
+                                <h6 class="mt-2">Lambda</h6>
+                                <p class="small text-muted">Serverless Processing</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-cloud-arrow-up display-6 text-info"></i>
+                                <h6 class="mt-2">S3 Storage</h6>
+                                <p class="small text-muted">File Upload & Storage</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-bar-chart display-6 text-warning"></i>
+                                <h6 class="mt-2">Analytics</h6>
+                                <p class="small text-muted">Data Visualization</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5 pt-5">
+        <div class="col-md-12">
+            <h2 class="text-center mb-4">How It Works</h2>
+            <div class="row">
+                <div class="col-md-3 text-center">
+                    <div class="p-4">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-upload display-6"></i>
+                        </div>
+                        <h5>1. Data Ingestion</h5>
+                        <p>Upload or stream your data through web interface or API</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-4">
+                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-arrow-left-right display-6"></i>
+                        </div>
+                        <h5>2. AWS Kinesis</h5>
+                        <p>Data streams in real-time to AWS Kinesis Data Streams</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-4">
+                        <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-gear display-6"></i>
+                        </div>
+                        <h5>3. Lambda Processing</h5>
+                        <p>Serverless functions process and transform the data</p>
+                    </div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="p-4">
+                        <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-bar-chart display-6"></i>
+                        </div>
+                        <h5>4. Visualization</h5>
+                        <p>Real-time monitoring and data visualization dashboard</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center p-5">
+                    <h3>Ready to Start Streaming?</h3>
+                    <p class="mb-4">Join our platform and experience real-time data processing at scale</p>
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'register' %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-rocket-takeoff"></i> Get Started Now
+                        </a>
+                    {% else %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-success btn-lg">
+                            <i class="bi bi-speedometer2"></i> Go to Dashboard
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="mt-5 py-4 bg-dark text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Real-time Streaming Pipeline</h5>
+                <p>A Django-based platform for AWS Kinesis and Lambda integration</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p class="mb-0"> Copyright issued by @Prasanthi 2026 Streaming Pipeline. All rights reserved.</p>
+                <p class="small">Built with Django & AWS Services</p>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}

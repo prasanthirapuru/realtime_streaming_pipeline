@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4>Submit Stream Data</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="data_type" class="form-label">Data Type</label>
+                <select class="form-control" id="data_type" name="data_type" required>
+                    <option value="">Select data type</option>
+                    <option value="sensor">Sensor Data</option>
+                    <option value="log">Log Data</option>
+                    <option value="metric">Metrics</option>
+                    <option value="event">Event Data</option>
+                    <option value="custom">Custom Data</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="data_content" class="form-label">Data Content (JSON)</label>
+                <textarea class="form-control" id="data_content" name="data_content" rows="10" required>{
+  "temperature": 25.5,
+  "humidity": 60,
+  "pressure": 1013,
+  "location": "server-room-1",
+  "timestamp": "{{ current_timestamp }}"
+}</textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="partition_key" class="form-label">Partition Key (Optional)</label>
+                <input type="text" class="form-control" id="partition_key" name="partition_key" value="{{ user.username }}">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i> Send to Kinesis Stream
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Quick Actions</h5>
+    </div>
+    <div class="card-body">
+        <button class="btn btn-outline-primary" onclick="sendTestData()">
+            <i class="bi bi-lightning"></i> Send Test Data
+        </button>
+        <button class="btn btn-outline-success" onclick="invokeLambda()">
+            <i class="bi bi-play-circle"></i> Invoke Lambda
+        </button>
+        <a href="{% url 'stream-data' %}" class="btn btn-outline-info">
+            <i class="bi bi-list"></i> View Stream Data
+        </a>
+    </div>
+</div>
+
+<script>
+function sendTestData() {
+    fetch('/api/send-stream/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            data_type: 'test',
+            value: Math.random() * 100,
+            user: '{{ user.username }}',
+            partition_key: 'test'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Test data sent! Sequence: ' + data.sequence_number);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function invokeLambda() {
+    fetch('/invoke-lambda/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Lambda invoked! ID: ' + data.invocation_id);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}Stream Data - Real-time Streaming Pipeline{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="bi bi-arrow-left-right text-primary"></i> Stream Data</h1>
+            <p class="lead">View and manage your Kinesis stream data records</p>
+            
+            {% if development_mode %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Development Mode:</strong> Displaying mock/sample data. 
+                {% if total_count == 0 %}
+                <a href="{% url 'user-submit-form' %}" class="alert-link">Submit some data</a> or 
+                <form method="post" action="{% url 'seed-sample-data' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-info">Generate Sample Data</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-database"></i> Data Stream Records 
+                        <span class="badge bg-secondary">{{ total_count }} total</span>
+                    </h5>
+                    <div>
+                        <a href="{% url 'user-submit-form' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Add New Data
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ total_count }}</h2>
+                                    <p class="mb-0">Total Records</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ processed_count }}</h2>
+                                    <p class="mb-0">Processed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ pending_count }}</h2>
+                                    <p class="mb-0">Pending</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h2>{{ streams|length }}</h2>
+                                    <p class="mb-0">This Page</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if streams %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Data Content</th>
+                                    <th>Timestamp</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stream in streams %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">{{ stream.stream_id|truncatechars:10 }}</small>
+                                    </td>
+                                    <td>
+                                        {% if stream.data_content.data_type %}
+                                            {% if stream.data_content.data_type == 'sensor' %}
+                                                <span class="badge bg-primary">
+                                                    <i class="bi bi-thermometer"></i> Sensor
+                                                </span>
+                                            {% elif stream.data_content.data_type == 'log' %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-journal-text"></i> Log
+                                                </span>
+                                            {% elif stream.data_content.data_type == 'metric' %}
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-speedometer2"></i> Metric
+                                                </span>
+                                            {% elif stream.data_content.data_type == 'event' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="bi bi-calendar-event"></i> Event
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-dark">
+                                                    <i class="bi bi-code-slash"></i> Custom
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            {% if stream.data_content.data_type == 'sensor' %}
+                                                Temp: {{ stream.data_content.temperature|default:"N/A" }}°C
+                                                | Humidity: {{ stream.data_content.humidity|default:"N/A" }}%
+                                            {% elif stream.data_content.data_type == 'log' %}
+                                                {{ stream.data_content.level|default:"INFO" }}: 
+                                                {{ stream.data_content.message|truncatechars:30 }}
+                                            {% elif stream.data_content.data_type == 'metric' %}
+                                                {{ stream.data_content.metric_name|default:"metric" }}: 
+                                                {{ stream.data_content.value|default:"0" }}{{ stream.data_content.unit|default:"" }}
+                                            {% elif stream.data_content.data_type == 'event' %}
+                                                {{ stream.data_content.event_type|default:"event" }} by 
+                                                {{ stream.data_content.user|default:"user" }}
+                                            {% else %}
+                                                {{ stream.data_content|truncatechars:50 }}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>{{ stream.timestamp|date:"Y-m-d H:i:s" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if stream.processed %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Processed
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-clock"></i> Pending
+                                            </span>
+                                        {% endif %}
+                                        {% if stream.lambda_invoked %}
+                                            <span class="badge bg-info mt-1 d-block">
+                                                <i class="bi bi-play-circle"></i> Lambda Invoked
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="viewData('{{ stream.id }}')"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#dataModal">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                        {% if not stream.processed %}
+                                        <button class="btn btn-sm btn-outline-success" 
+                                                onclick="processData('{{ stream.id }}')">
+                                            <i class="bi bi-gear"></i> Process
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Previous</span>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="mt-3">No Stream Data Found</h4>
+                        <p class="text-muted">Start by sending data to your Kinesis stream</p>
+                        <div class="mt-4">
+                            <a href="{% url 'user-submit-form' %}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send"></i> Send Data to Stream
+                            </a>
+                            {% if development_mode %}
+                            <form method="post" action="{% url 'seed-sample-data' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary btn-lg">
+                                    <i class="bi bi-magic"></i> Generate Sample Data
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{% url 'user-submit-form' %}" class="btn btn-outline-primary w-100 mb-2">
+                                <i class="bi bi-send"></i> Send Test Data
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-success w-100 mb-2" onclick="invokeLambda()">
+                                <i class="bi bi-play-circle"></i> Invoke Lambda
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'stream-status' %}" class="btn btn-outline-info w-100 mb-2">
+                                <i class="bi bi-graph-up"></i> Check Stream Status
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'data-visualization' %}" class="btn btn-outline-warning w-100 mb-2">
+                                <i class="bi bi-bar-chart"></i> View Analytics
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data View Modal -->
+<div class="modal fade" id="dataModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Stream Data Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="dataContent" class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="copyData()">
+                    <i class="bi bi-clipboard"></i> Copy JSON
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewData(streamId) {
+    fetch(`/api/get-stream-detail/${streamId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('dataContent').textContent = 
+                    JSON.stringify(data.data, null, 2);
+            } else {
+                document.getElementById('dataContent').textContent = 
+                    'Error: ' + data.error;
+            }
+        })
+        .catch(error => {
+            document.getElementById('dataContent').textContent = 
+                'Error fetching data: ' + error;
+        });
+}
+
+function processData(streamId) {
+    if (confirm('Are you sure you want to process this data stream?')) {
+        fetch(`/api/process-stream/${streamId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data processed successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function invokeLambda() {
+    if (confirm('Invoke AWS Lambda function for data processing?')) {
+        fetch('{% url "invoke-lambda" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Lambda function invoked successfully! ID: ' + data.invocation_id);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function copyData() {
+    const dataContent = document.getElementById('dataContent').textContent;
+    navigator.clipboard.writeText(dataContent).then(() => {
+        alert('Data copied to clipboard!');
+    }).catch(err => {
+        alert('Failed to copy: ' + err);
+    });
+}
+</script>
+<p>Copyright issued by @Mansoor</p>
+{% endblock %}

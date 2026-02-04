@@ -88,85 +88,32 @@ DATABASES = {
 
 # ... existing settings ...
 
-# ========== AWS CONFIGURATION ==========
 
+# ========== AWS CONFIGURATION USING ENVIRONMENT VARIABLES ==========
+# Development mode - True for local/dev, False for real AWS
+DEVELOPMENT_MODE = os.environ.get("AWS_DEVELOPMENT_MODE", "True") == "True"
 
-# Development mode - set to False when using real AWS
-AWS_DEVELOPMENT_MODE = True  # Change to False when you have valid AWS credentials
+# AWS Credentials
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.environ.get("AWS_REGION")
 
-# AWS General Configuration
-AWS_ACCESS_KEY_ID = AWSConfig.ACCESS_ID
-AWS_SECRET_ACCESS_KEY = AWSConfig.ACCESS_KEY
-AWS_REGION = AWSConfig.AWS_REGION
+# AWS Services
+KINESIS_STREAM_NAME = os.environ.get("KINESIS_STREAM_NAME")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+DEFAULT_FROM_EMAIL = os.environ.get("SES_SENDER_EMAIL")
 
-# AWS Kinesis Configuration
-KINESIS_STREAM_NAME = AWSConfig.KINESIS_STREAM_NAME
-
-# AWS S3 Configuration
-S3_BUCKET_NAME = AWSConfig.S3_BUCKET_NAME
-
-# AWS SES Email Configuration
-if not AWS_DEVELOPMENT_MODE:
+# Email Backend
+if not DEVELOPMENT_MODE:
     EMAIL_BACKEND = 'django_ses.SESBackend'
-    AWS_SES_REGION_NAME = AWSConfig.SES_REGION
-    AWS_SES_REGION_ENDPOINT = AWSConfig.SES_REGION_ENDPOINT
+    AWS_SES_REGION_NAME = os.environ.get("SES_REGION")
+    AWS_SES_REGION_ENDPOINT = os.environ.get("SES_REGION_ENDPOINT")
 else:
-    # Use console backend for development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-DEFAULT_FROM_EMAIL = AWSConfig.SES_SENDER_EMAIL
-
-# Email settings
+# Email SMTP settings (optional, used for SES SMTP)
 EMAIL_HOST = 'email-smtp.ap-south-1.amazonaws.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = AWSConfig.ACCESS_ID
-EMAIL_HOST_PASSWORD = AWSConfig.ACCESS_KEY
-
-# Development mode flag
-DEVELOPMENT_MODE = AWS_DEVELOPMENT_MODE
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+EMAIL_HOST_USER = AWS_ACCESS_KEY_ID
+EMAIL_HOST_PASSWORD = AWS_SECRET_ACCESS_KEY

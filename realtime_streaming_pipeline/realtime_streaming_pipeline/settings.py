@@ -89,7 +89,7 @@ DATABASES = {
 # ... existing settings ...
 
 # ========== AWS CONFIGURATION ==========
-from aws_config import AWSConfig
+
 
 # Development mode - set to False when using real AWS
 AWS_DEVELOPMENT_MODE = True  # Change to False when you have valid AWS credentials

@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 #Mansoor Vali - 13.01/26
 import os
 from pathlib import Path
-from aws_config import AWSConfig
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
